@@ -1,8 +1,6 @@
 # scripts
 
-A collection of my shell scripts. Put somewhere in your `$PATH` for the best experience!
-
-
+A collection of my scripts. Put somewhere in your `$PATH` for the best experience!
 
 # Maimblast
 
@@ -22,8 +20,6 @@ I wrote this because the [grimblast rofi script](https://github.com/hyprwm/contr
 
 - `xdotool`
 
-
-
 # Watchlist
 
 A watchlist management script using `yt-dlp`.
@@ -41,3 +37,11 @@ You can control the watchlist directory and video player used with the `$WATCHLI
 - `nl`
 
 - `mpv` (optional, default video player if `$WATCHLIST_PLAYER` is unset)
+
+# Spacer
+
+A python script that adds a user-defined number of spaces between text to make it d   r   a   m   a   t   i   c.
+
+## Depencencies
+
+- `python`

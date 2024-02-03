@@ -12,22 +12,22 @@ help_message() {
   echo "  watchlist [COMMAND]"
   echo ""
   echo "Commands:"
-  echo "  list"
+  echo "  list|l"
   echo "    List the files in the watchlist in alphabetical order."
-  echo "  add [FILE|LINKS]"
+  echo "  add|a [FILE|LINKS]"
   echo "    Add YouTube videos to the watchlist. Links must be enclosed in quotes."
   echo "    If a file is inputted, will download all the videos in the file."
   echo "    The file must only contain video links, one link per line."
   echo "    Will download and store said videos in \$WATCHLIST_DIRECTORY."
-  echo "  play [INDEX]"
+  echo "  play|p [INDEX]"
   echo "    Play the watchlist. If INDEX is unset, will start from the beggining"
   echo "    or will continue where you left off if mpv's \"watch later\" feature is used."
-  echo "  delete|del [INDEX]"
+  echo "  delete|del|d [INDEX]"
   echo "    Delete the file at INDEX. mpv can't automatically delete files after you"
   echo "    watch them, and I can't figure out how to do it."
-  echo "  refresh"
+  echo "  refresh|r"
   echo "    Force a refresh of the internal playlist file."
-  echo "  init"
+  echo "  init|i"
   echo "    Init the \$WATCHLIST_DIRECTORY and check dependencies."
   echo ""
   echo "Environment variables:"
@@ -67,7 +67,7 @@ fi
 }
 
 case "$1" in
-  init)
+  init|i)
     echo "Checking watchlist directory..."
     if [[ -z $WATCHLIST_DIRECTORY ]] && [ ! -d $DEFAULT_WATCHLIST_DIRECTORY ]; then
       echo "\$WATCHLIST_DIRECTORY unset."
@@ -84,7 +84,7 @@ case "$1" in
     echo "Note: if exa/eza is installed on this system, it will be used instead of ls"
     echo "to list the files (watchlist list)."
   ;;
-  list)
+  list|l)
     go_to_watchlist_dir --no-log
     echo "\$WATCHLIST_DIRECTORY → $(pwd)"
     if command -v "eza" &> /dev/null; then
@@ -93,7 +93,7 @@ case "$1" in
       ls . -1v | grep '\.mkv$' | nl -w2 -s' '
     fi
   ;;
-  add)
+  add|a)
     go_to_watchlist_dir
     if [[ $2 == *"https://"* ]]; then
       for ((i = 2; i <= $#; i++)); do
@@ -105,7 +105,7 @@ case "$1" in
     fi
     refresh_playlist
   ;;
-  play)
+  play|p)
     refresh_playlist
     go_to_watchlist_dir
     if [[ -z $2 ]]; then
@@ -133,7 +133,7 @@ case "$1" in
       fi
     fi
   ;;
-  delete|del)
+  delete|del|d)
     go_to_watchlist_dir
     if [[ -z $2 ]]; then
        echo "No index specified."
@@ -150,7 +150,7 @@ case "$1" in
     fi
     refresh_playlist
   ;;
-  refresh)
+  refresh|r)
     refresh_playlist
   ;;
   *)

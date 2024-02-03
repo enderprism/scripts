@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+
+# A program which adds a user-specified number of spaces between all the letters of a string
+# to make it more    d   r   a   m   a   t   i   c.
+# AUTHOR: EnderPrism
+from sys import argv
+
+# base_str = input("Enter base string: ")
+# space_count = int(input("Enter space count: "))
+documentation = """Spacer: a Python utility to add a user-defined number of spaces between the characters of a string.
+
+Usage:
+    spacer <string> <number of spaces>
+    # or alternatively, if you use it as a python script
+    python spacer.py <string> <number of spaces>
+"""
+
+
+def main():
+    if len(argv) == 1:
+        print(documentation)
+    else:
+        base_str = argv[1]
+        space_count = int(argv[2])
+
+        base_str_as_list = list(base_str)
+        for i in range(len(base_str_as_list)):
+            base_str_as_list[i] += " " * space_count
+
+        new_str = "".join(base_str_as_list)
+        print(new_str)
+    return 0
+
+
+if __name__ == "__main__":
+    main()
