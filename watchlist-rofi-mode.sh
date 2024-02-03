@@ -40,15 +40,15 @@ elif [[ "$1" == "$playlist" ]]; then
   coproc ( watchlist playlist > /dev/null 2>&1 )
 elif [[ $(cat /tmp/watchlist-rofi-operation) == "$add" ]]; then
   if is_youtube_url "$1"; then
-    coproc ( dunstify "Download has started!"  > /dev/null  2>&1 )
-    coproc ( yt-dlp "$1" --exec "dunstify --icon=document-save 'Watchlist download finished!'" > /dev/null  2>&1 )
+    coproc ( notify-send "Download has started!"  > /dev/null  2>&1 )
+    coproc ( yt-dlp "$1" --exec "notify-send --icon=document-save 'Watchlist download finished!'" > /dev/null  2>&1 )
     exit 0
   else
-    coproc ( dunstify --icon=dialog-error "The string isn't a YouTube url!" > /dev/null  2>&1 )
+    coproc ( notify-send --icon=dialog-error "The string isn't a YouTube url!" > /dev/null  2>&1 )
     exit 1
   fi
 elif [[ $(cat /tmp/watchlist-rofi-operation) == "$delete" ]]; then
-  coproc ( dunstify --icon=user-trash "Sucessfully deleted $1." > /dev/null  2>&1 )
+  coproc ( notify-send --icon=user-trash "Sucessfully deleted $1." > /dev/null  2>&1 )
   trash "$1"
 else
   coproc ( mpv "$1" > /dev/null  2>&1 )
