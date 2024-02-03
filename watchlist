@@ -22,6 +22,8 @@ help_message() {
   echo "  play|p [INDEX]"
   echo "    Play the watchlist. If INDEX is unset, will start from the beggining"
   echo "    or will continue where you left off if mpv's \"watch later\" feature is used."
+  echo "  watch|w [INDEX]"
+  echo "    See 'play'."
   echo "  delete|del|d [INDEX]"
   echo "    Delete the file at INDEX. mpv can't automatically delete files after you"
   echo "    watch them, and I can't figure out how to do it."
@@ -105,7 +107,7 @@ case "$1" in
     fi
     refresh_playlist
   ;;
-  play|p)
+  play|p|watch|w)
     refresh_playlist
     go_to_watchlist_dir
     if [[ -z $2 ]]; then
