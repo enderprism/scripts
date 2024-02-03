@@ -1,0 +1,261 @@
+#!/usr/bin/env bash
+
+export QT_QUICK_CONTROLS_STYLE=Plasma
+MAIMBLAST_EDITOR=ksnip
+
+getTargetDirectory() {
+  echo "$HOME/Images"
+}
+
+tmp_editor_directory() {
+  echo "/tmp"
+}
+
+#Detect if $MAIMBLAST_EDITOR env exist
+env_editor_confirm() {
+  if [ -n "$MAIMBLAST_EDITOR" ]; then
+    echo "MAIMBLAST_EDITOR is set. Continuing..."
+  else
+    echo "MAIMBLAST_EDITOR is not set. Defaulting to ksnip"
+    MAIMBLAST_EDITOR=ksnip
+  fi
+}
+
+NOTIFY=no
+CURSOR=
+SCALE=
+FREEZE=
+
+while [ $# -gt 0 ]; do
+  key="$1"
+
+  case $key in
+  -n | --notify)
+    NOTIFY=yes
+    shift # past argument
+    ;;
+  -c | --cursor)
+    CURSOR=yes
+    shift # past argument
+    ;;
+  -f | --freeze)
+    FREEZE=yes
+    shift # past argument
+    ;;
+  -s | --scale)
+    shift # past argument
+    if [ $# -gt 0 ]; then
+      SCALE="$1" # assign the next argument to SCALE
+      shift      # past argument
+    else
+      echo "Error: Missing argument for --scale option."
+      exit 1
+    fi
+    ;;
+  *)      # unknown option
+    break # done with parsing --flags
+    ;;
+  esac
+done
+
+ACTION=${1:-usage}
+SUBJECT=${2:-screen}
+FILE=${3:-$(getTargetDirectory)/$(date -Ins).png}
+FILE_TMP=${3:-$(tmp_editor_directory)/$(date -Ins).png}
+
+if [ "$ACTION" != "save" ] && [ "$ACTION" != "copy" ] && [ "$ACTION" != "edit" ] && [ "$ACTION" != "copysave" ] && [ "$ACTION" != "check" ]; then
+  echo "Usage:"
+  echo "  maimblast [--notify] [--cursor] [--freeze] [--scale <scale>] (copy|save|copysave|edit) [active|screen|output|area] [FILE|-]"
+  echo "  maimblast check"
+  echo "  maimblast usage"
+  echo ""
+  echo "Commands:"
+  echo "  copy: Copy the screenshot data into the clipboard."
+  echo "  save: Save the screenshot to a regular file or '-' to pipe to STDOUT."
+  echo "  copysave: Combine the previous 2 options."
+  echo "  edit: Open screenshot in the image editor of your choice (default is gimp). See man page for info."
+  echo "  check: Verify if required tools are installed and exit."
+  echo "  usage: Show this message and exit."
+  echo ""
+  echo "Targets:"
+  echo "  active: Currently active window."
+  echo "  screen: All visible outputs."
+  echo "  output: Currently active output."
+  echo "  area: Manually select a region or window."
+  exit
+fi
+
+notify() {
+  notify-send -t 3000 -a scrotblast "$@"
+}
+
+notifyOk() {
+  [ "$NOTIFY" = "no" ] && return
+
+  notify "$@"
+}
+
+notifyError() {
+  if [ $NOTIFY = "yes" ]; then
+    TITLE=${2:-"Screenshot"}
+    MESSAGE=${1:-"Error taking screenshot with maim"}
+    notify -u critical "$TITLE" "$MESSAGE"
+  else
+    echo "$1"
+  fi
+}
+
+die() {
+  MSG=${1:-Bye}
+  notifyError "Error: $MSG"
+  exit 2
+}
+
+check() {
+  COMMAND=$1
+  if command -v "$COMMAND" >/dev/null 2>&1; then
+    RESULT="OK"
+  else
+    RESULT="NOT FOUND"
+  fi
+  echo "   $COMMAND: $RESULT"
+}
+
+screenshotCurrentMonitor() {
+  FILE=$@
+  MONITORS=$(xrandr | grep -o '[0-9]*x[0-9]*[+-][0-9]*[+-][0-9]*')
+  # Get the location of the mouse
+  XMOUSE=$(xdotool getmouselocation | awk -F "[: ]" '{print $2}')
+  YMOUSE=$(xdotool getmouselocation | awk -F "[: ]" '{print $4}')
+
+  for mon in ${MONITORS}; do
+    # Parse the geometry of the monitor
+    MONW=$(echo ${mon} | awk -F "[x+]" '{print $1}')
+    MONH=$(echo ${mon} | awk -F "[x+]" '{print $2}')
+    MONX=$(echo ${mon} | awk -F "[x+]" '{print $3}')
+    MONY=$(echo ${mon} | awk -F "[x+]" '{print $4}')
+    # Use a simple collision check
+    if (( ${XMOUSE} >= ${MONX} )); then
+      if (( ${XMOUSE} <= ${MONX}+${MONW} )); then
+        if (( ${YMOUSE} >= ${MONY} )); then
+          if (( ${YMOUSE} <= ${MONY}+${MONH} )); then
+            # We have found our monitor!
+            maim -g "${MONW}x${MONH}+${MONX}+${MONY}" "$FILE"
+            exit 0
+          fi
+        fi
+      fi
+    fi
+  done
+  echo "Oh no the mouse is in the void!"
+  exit 1
+}
+
+takeScreenshot() {
+  FILE=$1
+  if [ "$SUBJECT" = "active" ]; then
+    maim -i $(xdotool getactivewindow) "$FILE"
+  elif [ "$SUBJECT" = "screen" ]; then
+    maim "$FILE"
+  elif [ "$SUBJECT" = "output" ]; then
+    # screenshotCurrentMonitor "$FILE"
+    MONITORS=$(xrandr | grep -o '[0-9]*x[0-9]*[+-][0-9]*[+-][0-9]*')
+    # Get the location of the mouse
+    XMOUSE=$(xdotool getmouselocation | awk -F "[: ]" '{print $2}')
+    YMOUSE=$(xdotool getmouselocation | awk -F "[: ]" '{print $4}')
+
+    for mon in ${MONITORS}; do
+      # Parse the geometry of the monitor
+      MONW=$(echo ${mon} | awk -F "[x+]" '{print $1}')
+      MONH=$(echo ${mon} | awk -F "[x+]" '{print $2}')
+      MONX=$(echo ${mon} | awk -F "[x+]" '{print $3}')
+      MONY=$(echo ${mon} | awk -F "[x+]" '{print $4}')
+      # Use a simple collision check
+      if (( ${XMOUSE} >= ${MONX} )); then
+        if (( ${XMOUSE} <= ${MONX}+${MONW} )); then
+          if (( ${YMOUSE} >= ${MONY} )); then
+            if (( ${YMOUSE} <= ${MONY}+${MONH} )); then
+              # We have found our monitor!
+              maim -g "${MONW}x${MONH}+${MONX}+${MONY}" "$FILE"
+            fi
+          fi
+        fi
+      fi
+    done
+  elif [ "$SUBJECT" = "area" ]; then
+    maim -s -l -c 0.706,0.745,0.996,0.6 --hidecursor "$FILE"
+  fi
+}
+
+if [ "$ACTION" = "check" ]; then
+  echo "Checking if required tools are installed. If something is missing, install it to your system and make it available in PATH..."
+  check maim
+  check slop
+  check clpimg.py
+  check notify-send
+  check xdotool
+  exit
+elif [ "$SUBJECT" = "active" ]; then
+  # GEOM=$(xdotool getactivewindow)
+  WHAT="Active window"
+elif [ "$SUBJECT" = "screen" ]; then
+  # GEOM=""
+  WHAT="Screen"
+elif [ "$SUBJECT" = "output" ]; then
+  # GEOM=""
+  WHAT="Active output"
+elif [ "$SUBJECT" = "area" ]; then
+  WHAT="Area"
+else
+  die "Unknown subject to take a screenshot from" "$SUBJECT"
+fi
+
+if [ "$ACTION" = "copy" ]; then
+  if takeScreenshot "$FILE_TMP"; then
+    TITLE="Screenshot of $WHAT"
+    MESSAGE="$WHAT copied to buffer"
+    notifyOk "$TITLE" "$MESSAGE" -i "$FILE_TMP"
+    clpimg.py "$FILE_TMP"
+    echo "$FILE_TMP"
+  else
+    notifyError "Error taking screenshot"
+  fi
+elif [ "$ACTION" = "save" ]; then
+  if takeScreenshot "$FILE"; then
+    TITLE="Screenshot of $SUBJECT"
+    MESSAGE="Saved at $(basename "$FILE")"
+    notifyOk "$TITLE" "$MESSAGE" -i "$FILE"
+    echo "$FILE"
+  else
+    notifyError "Error taking screenshot with maim"
+  fi
+elif [ "$ACTION" = "edit" ]; then
+  env_editor_confirm
+  if takeScreenshot "$FILE_TMP"; then
+    TITLE="Screenshot of $SUBJECT"
+    MESSAGE="Open screenshot in image editor"
+    notifyOk "$TITLE" "$MESSAGE" -i "$FILE_TMP"
+    $MAIMBLAST_EDITOR "$FILE_TMP"
+    echo "$FILE_TMP"
+  else
+    notifyError "Error taking screenshot"
+  fi
+else
+  if [ "$ACTION" = "copysave" ]; then
+    if takeScreenshot "$FILE"; then
+      TITLE="Screenshot of $SUBJECT"
+      MESSAGE="Screenshot copied to buffer and saved at $FILE"
+      notifyOk "$TITLE" "$MESSAGE" -i "$FILE"
+      clpimg.py "$FILE"
+      echo "$FILE"
+    fi
+  else
+    notifyError "Error taking screenshot with maim"
+  fi
+fi
+
+sleep 2
+
+if [ -n "$FILE_TMP" ]; then
+  trash "$FILE_TMP"
+fi

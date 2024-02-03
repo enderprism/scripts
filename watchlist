@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+shopt -s extglob
+
+DEFAULT_WATCHLIST_DIRECTORY="$HOME/Watchlist/"
+DEFAULT_WATCHLIST_PLAYER="mpv"
+
+help_message() {
+  echo "A YouTube playlist management script, using mpv and yt-dlp."
+  echo ""
+  echo "Usage:"
+  echo "  watchlist [COMMAND] [FILE|LINKS]"
+  echo "  watchlist [COMMAND]"
+  echo ""
+  echo "Commands:"
+  echo "  list"
+  echo "    List the files in the watchlist in alphabetical order."
+  echo "  add [FILE|LINKS]"
+  echo "    Add YouTube videos to the watchlist. Links must be enclosed in quotes."
+  echo "    If a file is inputted, will download all the videos in the file."
+  echo "    The file must only contain video links, one link per line."
+  echo "    Will download and store said videos in \$WATCHLIST_DIRECTORY."
+  echo "  play [INDEX]"
+  echo "    Play the watchlist. If INDEX is unset, will start from the beggining"
+  echo "    or will continue where you left off if mpv's \"watch later\" feature is used."
+  echo "  delete|del [INDEX]"
+  echo "    Delete the file at INDEX. mpv can't automatically delete files after you"
+  echo "    watch them, and I can't figure out how to do it."
+  echo "  refresh"
+  echo "    Force a refresh of the internal playlist file."
+  echo "  init"
+  echo "    Init the \$WATCHLIST_DIRECTORY and check dependencies."
+  echo ""
+  echo "Environment variables:"
+  echo "  \$WATCHLIST_DIRECTORY"
+  echo "    The directory where the videos and playlist file are stored."
+  echo "    Default value: ~/Watchlist/"
+  echo "  \$WATCHLIST_PLAYER"
+  echo "    The player used to watch videos from the watchlist."
+  echo "    Default value: mpv"
+}
+
+go_to_watchlist_dir() {
+  if [[ -z $WATCHLIST_DIRECTORY ]]; then
+    cd $DEFAULT_WATCHLIST_DIRECTORY
+  else
+    cd $WATCHLIST_DIRECTORY
+  fi
+  if [[ -z $1 ]]; then
+    echo "Entered watchlist directory."
+  fi
+}
+
+refresh_playlist() {
+  go_to_watchlist_dir --no-log
+  /usr/bin/env ls -1d "$PWD/"*.mkv > playlist.m3u
+  echo "Refreshed playlist."
+}
+
+check_deps() {
+  local required_command=$1
+  if command -v "$required_command" &> /dev/null; then
+    echo "$required_command is installed."
+  else
+    echo "Error: $required_command is not installed. Please install it before running this script."
+    exit 1
+fi
+}
+
+case "$1" in
+  init)
+    echo "Checking watchlist directory..."
+    if [[ -z $WATCHLIST_DIRECTORY ]] && [ ! -d $DEFAULT_WATCHLIST_DIRECTORY ]; then
+      echo "\$WATCHLIST_DIRECTORY unset."
+      echo "Creating watchlist directory at ~/Watchlist/"
+      mkdir $DEFAULT_WATCHLIST_DIRECTORY
+    fi
+    echo "Checking dependencies..."
+    check_deps "sed"
+    check_deps "nl"
+    check_deps "yt-dlp"
+    check_deps "mpv"
+    echo "Note: mpv is optional, and the watchlist player can be changed with the"
+    echo "\$WATCHLIST_PLAYER variable."
+    echo "Note: if exa/eza is installed on this system, it will be used instead of ls"
+    echo "to list the files (watchlist list)."
+  ;;
+  list)
+    go_to_watchlist_dir --no-log
+    echo "\$WATCHLIST_DIRECTORY → $(pwd)"
+    if command -v "eza" &> /dev/null; then
+      eza -1 --icons --color=always --no-quotes --group-directories-first -I "*.m3u|*.json" | nl -w2 -s' '
+    else
+      ls . -1v | grep '\.mkv$' | nl -w2 -s' '
+    fi
+  ;;
+  add)
+    go_to_watchlist_dir
+    if [[ $2 == *"https://"* ]]; then
+      for ((i = 2; i <= $#; i++)); do
+          arg="${!i}"
+          yt-dlp "$arg"
+      done
+    else
+      yt-dlp $(cat $2)
+    fi
+    refresh_playlist
+  ;;
+  play)
+    refresh_playlist
+    go_to_watchlist_dir
+    if [[ -z $2 ]]; then
+      if [[ -z $WATCHLIST_PLAYER ]]; then
+        echo "Playing watchlist in mpv (no index specified)."
+        mpv .
+      else
+        echo "Playing watchlist in $WATCHLIST_PLAYER (no index specified)."
+        $WATCHLIST_PLAYER .
+      fi
+    else
+      # Get the nth file in alphabetical order
+      nth_file=$(/usr/bin/env ls -1v . | grep '\.mkv$' | sed -n "${2}p")
+      if [ -n "$nth_file" ]; then
+        if [[ -z $WATCHLIST_PLAYER ]]; then
+          echo "Playing watchlist in mpv (index is ${2})."
+          mpv "$nth_file"
+        else
+          echo "Playing watchlist in $WATCHLIST_PLAYER (index is ${2})."
+          $WATCHLIST_PLAYER "$nth_file"
+        fi
+      else
+          echo "Error: there is no ${2}th file in the directory."
+          exit 1
+      fi
+    fi
+  ;;
+  delete|del)
+    go_to_watchlist_dir
+    if [[ -z $2 ]]; then
+       echo "No index specified."
+    else
+      # Get the nth file in alphabetical order
+      nth_file=$(/usr/bin/env ls -1v . | grep '\.mkv$' | sed -n "${2}p")
+      if [ -n "$nth_file" ]; then
+        rm "$nth_file"
+        echo "Deleted \"$nth_file\"."
+      else
+        echo "Error: there is no ${2}th file in the directory."
+        exit 1
+      fi
+    fi
+    refresh_playlist
+  ;;
+  refresh)
+    refresh_playlist
+  ;;
+  *)
+    help_message
+  ;;
+esac
