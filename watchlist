@@ -20,13 +20,14 @@ help_message() {
   echo "    The file must only contain video links, one link per line."
   echo "    Will download and store said videos in \$WATCHLIST_DIRECTORY."
   echo "  play|p [INDEX]"
-  echo "    Play the watchlist. If INDEX is unset, will start from the beggining"
-  echo "    or will continue where you left off if mpv's \"watch later\" feature is used."
+  echo "    Play the watchlist. If INDEX is unset, will show an interactive picker"
+  echo "    to choose the video."
   echo "  watch|w [INDEX]"
   echo "    See 'play'."
   echo "  delete|del|d [INDEX]"
-  echo "    Delete the file at INDEX. mpv can't automatically delete files after you"
-  echo "    watch them, and I can't figure out how to do it."
+  echo "    Delete the file at INDEX. If INDEX is unset, will show an interactive"
+  echo "    picker to choose the files to be deleted. mpv can't automatically"
+  echo "    delete files after you watch them, and I can't figure out how to do it."
   echo "  remove|rm|r [INDEX]"
   echo "    See 'delete'."
   echo "  refresh"
@@ -114,11 +115,11 @@ case "$1" in
     go_to_watchlist_dir
     if [[ -z $2 ]]; then
       if [[ -z $WATCHLIST_PLAYER ]]; then
-        echo "Playing watchlist in mpv (no index specified)."
-        mpv .
+        echo "Opening interactive picker to play with mpv (default player)."
+        mpv "$(/usr/bin/env ls . -1v | grep '\.mkv$' | fzf)"
       else
-        echo "Playing watchlist in $WATCHLIST_PLAYER (no index specified)."
-        $WATCHLIST_PLAYER .
+        echo "Opening interactive picker to play video with $WATCHLIST_PLAYER."
+        mpv "$(/usr/bin/env ls . -1v | grep '\.mkv$' | fzf)"
       fi
     else
       # Get the nth file in alphabetical order
@@ -140,7 +141,14 @@ case "$1" in
   delete|del|d|remove|rm|r)
     go_to_watchlist_dir
     if [[ -z $2 ]]; then
-       echo "No index specified."
+        echo "Opening interactive picker."
+        file_to_be_deleted="$(/usr/bin/env ls . -1v | grep '\.mkv$' | fzf)"
+        if [[ -n "$file_to_be_deleted" ]]; then
+          echo "Deleted $file_to_be_deleted."
+          rm "$file_to_be_deleted"
+        else
+          echo "No file specified!"
+        fi
     else
       # Get the nth file in alphabetical order
       nth_file=$(/usr/bin/env ls -1v . | grep '\.mkv$' | sed -n "${2}p")
