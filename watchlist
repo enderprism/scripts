@@ -137,7 +137,7 @@ case "$1" in
       fi
     fi
   ;;
-  delete|del|d)
+  delete|del|d|remove|rm|r)
     go_to_watchlist_dir
     if [[ -z $2 ]]; then
        echo "No index specified."
@@ -154,7 +154,7 @@ case "$1" in
     fi
     refresh_playlist
   ;;
-  refresh|r)
+  refresh)
     refresh_playlist
   ;;
   *)
