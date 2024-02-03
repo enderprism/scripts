@@ -4,7 +4,7 @@ A collection of my scripts. Put somewhere in your `$PATH` for the best experienc
 
 # Maimblast
 
-A rewrite of Hyprland's [grimblast](https://github.com/hyprwm/contrib/blob/main/grimblast/grimblast) to use with X11 window managers and `maim`. 
+A rewrite of Hyprland's [grimblast](https://github.com/hyprwm/contrib/blob/main/grimblast/grimblast) to use with X11 window managers and `maim`.
 
 I wrote this because the [grimblast rofi script](https://github.com/hyprwm/contrib/blob/main/grimblast/grimblast) is really convenient and I wanted to have a seamless experience with it between my i3wm and Hyprland rices.
 
@@ -27,6 +27,8 @@ A watchlist management script using `yt-dlp`.
 I tend to get distracted when I have multiple tabs open in my browser, and this script fixes the issue for me, and it reduces RAM and network usage usage since you only need a video player and not a whole browser open to watch videos.
 
 You can control the watchlist directory and video player used with the `$WATCHLIST_DIRECTORY` and `$WATCHLIST_PLAYER` environment variables respectively.
+
+I also made a [rofi mode script](https://github.com/enderprism/scripts/blob/main/watchlist-rofi-mode.sh) that gives a nice GUI to this CLI utility.
 
 ## Dependencies
 
